@@ -1,0 +1,17 @@
+{
+  "spec": {
+    "name": "expense-budget-visu",
+    "title": "Expense & Budget Visualizer — DOMPETTIPIS",
+    "version": "1.0.0",
+    "description": "Mobile-friendly web app for tracking daily expenses with pie chart visualization, monthly summaries, and custom categories. Built with Vanilla JS + Neubrutalism design.",
+    "techStack": {
+      "html": "index.html",
+      "css": "css/style.css",
+      "js": "js/app.js",
+      "chartLibrary": "Chart.js v4.4.0 (CDN)",
+      "font": "Space Grotesk (Google Fonts)"
+    },
+    "storage": "localStorage",
+    "framework": "none"
+  }
+}
