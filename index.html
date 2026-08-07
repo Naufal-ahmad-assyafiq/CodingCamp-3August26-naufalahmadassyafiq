@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense &amp; Budget Visualizer</title>
+
+  <!-- Google Fonts: Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="brand-icon">🪙</span>
+        <div class="brand-text-group">
+          <h1 class="brand-title">DOMPETTIPIS</h1>
+          <p class="brand-tagline">Sistem pencatat yang cuma bisa pasrah merangkum setiap detail transaksi kamu ke dalam satu dashboard.</p>
+        </div>
+      </div>
+      <button class="btn btn--icon" id="themeToggleBtn" aria-label="Toggle dark/light mode" title="Toggle theme">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="app-main">
+
+    <!-- BALANCE SUMMARY -->
+    <section class="section" id="balanceSection" aria-label="Balance summary">
+      <div class="balance-card card">
+        <div class="balance-info">
+          <p class="balance-label">Total Spending</p>
+          <p class="balance-amount" id="totalBalance">Rp 0</p>
+        </div>
+        <div class="limit-info" id="limitInfo" hidden>
+          <p class="limit-label">Budget Limit</p>
+          <p class="limit-amount" id="limitDisplay">Rp 0</p>
+        </div>
+      </div>
+      <!-- Spending limit alert -->
+      <div class="alert alert--danger" id="limitAlert" hidden role="alert">
+        ⚠️ You've exceeded your spending limit!
+      </div>
+    </section>
+
+    <!-- INPUT FORM -->
+    <section class="section" aria-label="Add transaction">
+      <h2 class="section-title">Add Transaction</h2>
+      <form class="card form-card" id="transactionForm" novalidate>
+        <div class="form-group">
+          <label for="itemName" class="form-label">Item Name</label>
+          <input
+            type="text"
+            id="itemName"
+            name="itemName"
+            class="form-input"
+            placeholder="e.g. Lunch, Grab, Netflix"
+            autocomplete="off"
+          />
+          <p class="form-error" id="itemNameError" hidden>Item name is required.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="itemAmount" class="form-label">Amount (Rp)</label>
+          <input
+            type="number"
+            id="itemAmount"
+            name="itemAmount"
+            class="form-input"
+            placeholder="e.g. 25000"
+            min="1"
+            autocomplete="off"
+          />
+          <p class="form-error" id="itemAmountError" hidden>Enter a valid positive amount.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="itemCategory" class="form-label">Category</label>
+          <select id="itemCategory" name="itemCategory" class="form-input form-select">
+            <!-- Populated dynamically -->
+          </select>
+          <p class="form-error" id="itemCategoryError" hidden>Please select a category.</p>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--full">+ Add Transaction</button>
+      </form>
+    </section>
+
+    <!-- SPENDING LIMIT SETTING -->
+    <section class="section" aria-label="Budget settings">
+      <h2 class="section-title">Budget Settings</h2>
+      <div class="card form-card">
+        <div class="form-group">
+          <label for="spendingLimitInput" class="form-label">Monthly Spending Limit (Rp)</label>
+          <input
+            type="number"
+            id="spendingLimitInput"
+            class="form-input"
+            placeholder="e.g. 2000000 (0 = no limit)"
+            min="0"
+          />
+        </div>
+        <button class="btn btn--secondary btn--full" id="saveLimitBtn">Save Limit</button>
+      </div>
+    </section>
+
+    <!-- CHART -->
+    <section class="section" aria-label="Spending chart">
+      <h2 class="section-title">Spending by Category</h2>
+      <div class="card chart-card">
+        <div class="chart-wrapper" id="chartWrapper">
+          <canvas id="spendingChart" aria-label="Pie chart of spending by category" role="img"></canvas>
+        </div>
+        <p class="empty-state" id="chartEmpty">No transactions yet. Add one above!</p>
+      </div>
+    </section>
+
+    <!-- TRANSACTION LIST -->
+    <section class="section" aria-label="Transaction list">
+      <div class="section-header">
+        <h2 class="section-title">Transactions</h2>
+        <!-- Tab switcher -->
+        <div class="tab-group" role="tablist">
+          <button class="tab-btn tab-btn--active" id="tabAll" role="tab" aria-selected="true" data-tab="all">All</button>
+          <button class="tab-btn" id="tabMonthly" role="tab" aria-selected="false" data-tab="monthly">Monthly</button>
+        </div>
+      </div>
+
+      <!-- Sort & Filter Toolbar -->
+      <div class="toolbar card" id="toolbar">
+        <div class="toolbar-group">
+          <label for="filterCategory" class="toolbar-label">Filter:</label>
+          <select id="filterCategory" class="form-input form-select toolbar-select">
+            <option value="all">All Categories</option>
+          </select>
+        </div>
+        <div class="toolbar-group">
+          <label for="sortOrder" class="toolbar-label">Sort:</label>
+          <select id="sortOrder" class="form-input form-select toolbar-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="amount-desc">Amount ↓</option>
+            <option value="amount-asc">Amount ↑</option>
+            <option value="category-az">Category A-Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- All Transactions Panel -->
+      <div id="panelAll">
+        <div class="transaction-list" id="transactionList">
+          <!-- Populated dynamically -->
+        </div>
+        <p class="empty-state" id="listEmpty">No transactions found.</p>
+      </div>
+
+      <!-- Monthly Summary Panel -->
+      <div id="panelMonthly" hidden>
+        <div id="monthlySummaryList">
+          <!-- Populated dynamically -->
+        </div>
+        <p class="empty-state" id="monthlyEmpty">No transactions yet.</p>
+      </div>
+    </section>
+
+    <!-- CATEGORY MANAGER -->
+    <section class="section" aria-label="Manage categories">
+      <div class="section-header">
+        <h2 class="section-title">Manage Categories</h2>
+        <button class="btn btn--sm btn--secondary" id="toggleCategoryManager" aria-expanded="false">Show</button>
+      </div>
+      <div class="card" id="categoryManagerPanel" hidden>
+        <!-- Add category form -->
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group form-group--grow">
+              <label for="newCategoryName" class="form-label">Category Name</label>
+              <input
+                type="text"
+                id="newCategoryName"
+                class="form-input"
+                placeholder="e.g. Healthcare"
+                autocomplete="off"
+              />
+              <p class="form-error" id="newCategoryError" hidden>Name is required and must be unique.</p>
+            </div>
+            <div class="form-group">
+              <label for="newCategoryColor" class="form-label">Color</label>
+              <input type="color" id="newCategoryColor" class="form-input form-color" value="#ff6b35" />
+            </div>
+          </div>
+          <button class="btn btn--primary btn--full" id="addCategoryBtn">+ Add Category</button>
+        </div>
+
+        <!-- Category list -->
+        <div class="category-list" id="categoryList">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== DELETE CONFIRM MODAL ===== -->
+  <div class="modal-overlay" id="deleteModal" hidden role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+    <div class="modal card">
+      <h3 class="modal-title" id="deleteModalTitle">Delete Transaction?</h3>
+      <p class="modal-body">This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn--secondary" id="deleteCancelBtn">Cancel</button>
+        <button class="btn btn--danger" id="deleteConfirmBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Script -->
+  <script src="js/app.js"></script>
+</body>
+</html>
